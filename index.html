@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -143,6 +142,36 @@
       margin: 20px 0 25px;
     }
 
+    /* --- NEW SEARCH BAR (added without disturbing existing style) --- */
+    .search-wrapper {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+    #searchInput {
+      width: 100%;
+      max-width: 500px;
+      padding: 14px 20px;
+      font-size: 1.1rem;
+      border: none;
+      border-radius: 60px;
+      background: #fff4e0;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2), inset 0 1px 4px #ffe3a5;
+      font-weight: 500;
+      color: #2e2c1c;
+      outline: 2px solid transparent;
+      transition: 0.2s;
+    }
+    #searchInput:focus {
+      outline: 2px solid #f7b731;
+      background: #ffffff;
+      box-shadow: 0 8px 16px #3f301f;
+    }
+    #searchInput::placeholder {
+      color: #7b6b4b;
+      font-style: italic;
+    }
+
     table {
       width: 100%;
       border-collapse: separate;
@@ -279,6 +308,11 @@
       <div class="table-card">
         <div class="table-title">📋 Book List & Shelf Details</div>
 
+        <!-- **********  SEARCH BAR ADDED HERE  ********** -->
+        <div class="search-wrapper">
+          <input type="text" id="searchInput" placeholder="🔍 Search by book name or shelf ..." onkeyup="filterBooks()">
+        </div>
+
         <table>
           <thead>
             <tr>
@@ -356,8 +390,12 @@
       ]
     };
 
+    // keep currently active category for filtering
+    let currentCategory = null;
+
     // Expose functions globally (for inline onclick)
     window.openCategory = function(category) {
+      currentCategory = category;   // remember for search
       // switch screens
       document.getElementById("homeScreen").classList.add("hidden");
       document.getElementById("booksScreen").classList.remove("hidden");
@@ -365,15 +403,31 @@
       // set header title
       document.getElementById("categoryTitle").innerText = `📚 ${category} Books`;
 
-      // populate table
+      // populate table (full, no filter)
+      renderBookTable(category, '');   // empty search => all books
+
+      // clear search input for fresh start
+      const searchInput = document.getElementById('searchInput');
+      if (searchInput) searchInput.value = '';
+    };
+
+    // render table based on category and filter text
+    function renderBookTable(category, filterText) {
       const tableBody = document.getElementById("bookTable");
       tableBody.innerHTML = "";
 
       const books = booksData[category];
-      if (books && books.length) {
-        books.forEach((item, idx) => {
+      if (!books) return;
+
+      const lowerFilter = filterText.toLowerCase();
+      const filteredBooks = books.filter(item => 
+        item[0].toLowerCase().includes(lowerFilter) || 
+        item[1].toLowerCase().includes(lowerFilter)
+      );
+
+      if (filteredBooks.length) {
+        filteredBooks.forEach((item, idx) => {
           const row = document.createElement("tr");
-          // using backticks with proper HTML
           row.innerHTML = `
             <td>${idx + 1}</td>
             <td>${item[0]}</td>
@@ -382,16 +436,23 @@
           tableBody.appendChild(row);
         });
       } else {
-        // fallback if category somehow empty
         const row = document.createElement("tr");
-        row.innerHTML = '<td colspan="3">📭 No books found</td>';
+        row.innerHTML = '<td colspan="3" style="background:#ffe1b0;">📭 No matching books found</td>';
         tableBody.appendChild(row);
       }
+    }
+
+    // search function called on keyup
+    window.filterBooks = function() {
+      if (!currentCategory) return;
+      const filterValue = document.getElementById('searchInput').value;
+      renderBookTable(currentCategory, filterValue);
     };
 
     window.goBack = function() {
       document.getElementById("booksScreen").classList.add("hidden");
       document.getElementById("homeScreen").classList.remove("hidden");
+      currentCategory = null;   // reset category
     };
 
     // optional: preload any default if needed, but home is visible.
